@@ -91,13 +91,18 @@ class Stock(Asset):
                  engine='yahoo'):
         """
         :param ticker: stock ticker name
-        :param start: datetime to start the query
+        :param start: date object to start the query
         :param end: end period
         :param engine: engine to use for data_reader
         :returns: Stock -- object containing stock info and indicators
         """
         df = pdr.DataReader(ticker, engine, start, end)
         super().__init__(df, ticker)
+
+        try:
+            del self.df['Adj Close']
+        except KeyError:
+            pass
 
         self.start = self.df.index[0].date()
         self.end = self.df.index[-1].date()
@@ -106,21 +111,30 @@ class Stock(Asset):
         print('This indicator is for development purposes!')
         return pd.Series(np.arange(self.df.shape[0]), self.df.index).rename('dev')
 
-class BTC(Asset):
-    def __init__(self):
-        url = 'https://api.kraken.com/0/public/OHLC?pair=XXBTZUSD&interval=1440'
+class FX(Asset):
+    def __init__(self,
+                 ticker='BTC-USD',
+                 start=dt.date.today() - dt.timedelta(days=30),
+                 end=dt.date.today()):
+
+        start = '{}/{}/{}'.format(start.year, start.month, start.day)
+        end = '{}/{}/{}'.format(end.year, end.month, end.day)
+
+        url = ('https://api.gdax.com/products/' + ticker
+               + '/candles?start=' + start + '&end=' + end
+               + '&granularity=86400')
+
         r = requests.get(url)
 
-        data = r.json()['result']['XXBTZUSD'][:-1]
-        data = np.array(data)
-        
-        data = np.array(data[:, [0,1,2,3,4,6]], dtype=float)
+        data = np.array(r.json())
         data = data[np.argsort(data[:,0]),:]
-
-        index = pd.to_datetime(data[:,0], unit='s')
-
-        df = pd.DataFrame(
-                 data[:,1:], index, columns=['Open','High','Low','Close','Volume'])
+        df = pd.DataFrame(data[:,1:], pd.to_datetime(data[:,0], unit='s'),
+                          ['Low','High','Open','Close','Volume'])
+        df.index.name = 'Date'
 
         super().__init__(df, 'BTCUSD')
+
+        self.start = self.df.index[0]
+        self.end = self.df.index[-1]
+        self.ticker = ticker
 

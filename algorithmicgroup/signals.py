@@ -37,7 +37,7 @@ def pairs(assets, tol=1):
     signal[np.isnan(signal)] = 0
 
     signal = pd.DataFrame(signal, price_diff.index,
-                          columns=[asset1.ticker + '_pair', asset2.ticker + '_pair'])
+                          columns=[asset1.name + '_pair', asset2.name + '_pair'])
 
     return signal
 
@@ -50,6 +50,6 @@ def buy_hold(assets):
         blah = pd.concat([A.df.Close for A in assets], axis=1)
         blah = blah.index
         signal = np.ones([m.shape[0], len(assets)])
-        signal = pd.DataFrame(signal, blah, [A.ticker for A in assets])
+        signal = pd.DataFrame(signal, blah, [A.name for A in assets])
 
         return signal

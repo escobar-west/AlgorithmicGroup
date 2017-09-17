@@ -5,9 +5,9 @@ def backtest_strat(principal, strat, assets, *args, **kwargs):
     if isinstance(assets, list):
         principal /= len(assets)
         df_close = pd.concat(
-                       [np.log(A.df.Close.rename(A.ticker+'_Close')) for A in assets], axis=1)
+                       [np.log(A.df.Close.rename(A.name+'_Close')) for A in assets], axis=1)
     else:
-        df_close = np.log(assets.df.Close.rename(assets.ticker+'_Close'))
+        df_close = np.log(assets.df.Close.rename(assets.name+'_Close'))
         df_close = pd.DataFrame(df_close)
 
     df_signals = strat(assets, *args, **kwargs)

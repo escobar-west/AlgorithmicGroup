@@ -6,7 +6,7 @@ import pdb
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from algorithmicgroup import Asset, Stock, BTC
+from algorithmicgroup import Asset, Stock, FX
 
 def debug_on(f):
     @functools.wraps(f)

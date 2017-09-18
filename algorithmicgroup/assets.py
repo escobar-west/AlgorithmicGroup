@@ -15,15 +15,15 @@ class Asset:
         return [val for val in dir(cls) if val[0] != '_']
 
     def __repr__(self):
-        return '{} from {} to {}'.format(self.ticker, self.df.index[0], self.df.index[-1])
+        return '{} from {} to {}'.format(self.name, self.df.index[0], self.df.index[-1])
 
-    def __init__(self, df, ticker='Asset'):
+    def __init__(self, df, name='Asset'):
         """
         :param df: pandas dataframe of asset information
-        :param ticker: string representing the ticker
+        :param name: string representing the name
         """
         self.df = df
-        self.ticker = ticker
+        self.name = name
 
     def SMA(self, windows = 15):
         """
@@ -82,28 +82,29 @@ class Stock(Asset):
     Stock class
     """
     def __repr__(self):
-        return f'{self.ticker} from {self.start} to {self.end}'
+        return f'{self.name} from {self.start} to {self.end}'
 
     def __init__(self,
-                 ticker='SPY',
+                 name='SPY',
                  start=dt.date.today() - dt.timedelta(days=30),
                  end=dt.date.today(),
                  engine='yahoo'):
         """
-        :param ticker: stock ticker name
+        :param name: stock name name
         :param start: date object to start the query
         :param end: end period
         :param engine: engine to use for data_reader
         :returns: Stock -- object containing stock info and indicators
         """
-        df = pdr.DataReader(ticker, engine, start, end)
-        super().__init__(df, ticker)
+        df = pdr.DataReader(name, engine, start, end)
 
+        # Deletes an extra field from the yahoo engine we don't need
         try:
-            del self.df['Adj Close']
+            del df['Adj Close']
         except KeyError:
             pass
 
+        super().__init__(df, name)
         self.start = self.df.index[0].date()
         self.end = self.df.index[-1].date()
 
@@ -113,14 +114,14 @@ class Stock(Asset):
 
 class FX(Asset):
     def __init__(self,
-                 ticker='BTC-USD',
+                 name='BTC-USD',
                  start=dt.date.today() - dt.timedelta(days=30),
                  end=dt.date.today()):
 
         start = '{}/{}/{}'.format(start.year, start.month, start.day)
         end = '{}/{}/{}'.format(end.year, end.month, end.day)
 
-        url = ('https://api.gdax.com/products/' + ticker
+        url = ('https://api.gdax.com/products/' + name
                + '/candles?start=' + start + '&end=' + end
                + '&granularity=86400')
 
@@ -132,9 +133,8 @@ class FX(Asset):
                           ['Low','High','Open','Close','Volume'])
         df.index.name = 'Date'
 
-        super().__init__(df, 'BTCUSD')
+        super().__init__(df, name)
 
         self.start = self.df.index[0]
         self.end = self.df.index[-1]
-        self.ticker = ticker
 

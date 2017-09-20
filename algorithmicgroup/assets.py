@@ -1,9 +1,38 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import datetime as dt
 from pandas_datareader import data as pdr
 import requests
-import pdb
+from functools import partial
+from multiprocessing import Process
+
+class Indicator:
+    def __init__(self, func):
+        self.__func = func
+        self.__name__ = func.__name__
+
+    def __call__(self, *args, **kwargs):
+        res = self.func(*args, **kwargs)
+        return res
+
+    def __get__(self, obj, cls=None):
+        self.func = partial(self.__func, obj)
+        return self
+
+
+class Panel(Indicator):
+    def plot(self, *args, **kwargs):
+
+        plt.plot(self(*args, **kwargs))
+        plt.show()
+
+        print('I am plotting Indicator ' + self.__name__)
+
+        
+class Level(Indicator):
+    def plot(self):
+        print('I am plotting Level ' + self.__name__)
 
 
 class Asset:
@@ -12,7 +41,8 @@ class Asset:
     """
     @classmethod
     def __dir__(cls):
-        return [val for val in dir(cls) if val[0] != '_']
+        return [val for val in dir(cls) if isinstance(
+                                              eval(cls.__name__+'.'+val), Indicator)]
 
     def __repr__(self):
         return '{} from {} to {}'.format(self.name, self.df.index[0], self.df.index[-1])
@@ -25,7 +55,8 @@ class Asset:
         self.df = df
         self.name = name
 
-    def SMA(self, windows = 15):
+    @Panel
+    def SMA(self, windows=15):
         """
         :param windows: list of periods to compute averages for
         :returns: Series if windows is an int, DataFrame if windows is a list
@@ -42,6 +73,7 @@ class Asset:
             SMA = pd.DataFrame(input_dict, self.df.index)
             return SMA
 
+    @Panel
     def RSI(self, window=14):
         """
         :param window: window to compute averages
@@ -65,6 +97,7 @@ class Asset:
 
         return RSI
 
+    @Panel 
     def OBV(self):
         """
         :returns: Series -- pandas Series of OBV values
@@ -77,6 +110,7 @@ class Asset:
 
         return OBV.rename('OBV')
         
+
 class Stock(Asset):
     """
     Stock class
@@ -94,7 +128,7 @@ class Stock(Asset):
         :param start: date object to start the query
         :param end: end period
         :param engine: engine to use for data_reader
-        :returns: Stock -- object containing stock info and indicators
+        :returns: Stock -- object containing stock info and Indicators
         """
         df = pdr.DataReader(name, engine, start, end)
 
@@ -108,9 +142,11 @@ class Stock(Asset):
         self.start = self.df.index[0].date()
         self.end = self.df.index[-1].date()
 
+    @Level
     def _dev(self):
-        print('This indicator is for development purposes!')
+        print('This Indicator is for development purposes!')
         return pd.Series(np.arange(self.df.shape[0]), self.df.index).rename('dev')
+
 
 class FX(Asset):
     def __init__(self,

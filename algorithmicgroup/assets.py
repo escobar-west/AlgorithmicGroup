@@ -8,16 +8,16 @@ from functools import partial
 from multiprocessing import Process
 
 class Indicator:
-    def __init__(self, func):
-        self.__func = func
-        self.__name__ = func.__name__
+    def __init__(self, function):
+        self.__function = function
+        self.__name__ = function.__name__
 
     def __call__(self, *args, **kwargs):
-        res = self.func(*args, **kwargs)
+        res = self.function(*args, **kwargs)
         return res
 
     def __get__(self, obj, cls=None):
-        self.func = partial(self.__func, obj)
+        self.function = partial(self.__function, obj)
         return self
 
 

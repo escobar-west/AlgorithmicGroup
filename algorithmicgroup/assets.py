@@ -5,7 +5,6 @@ import datetime as dt
 from pandas_datareader import data as pdr
 import requests
 from functools import partial
-from multiprocessing import Process
 
 class Indicator:
     def __init__(self, func):

@@ -8,32 +8,31 @@ from functools import partial
 from multiprocessing import Process
 
 class Indicator:
-    def __init__(self, function):
-        self.__function = function
-        self.__name__ = function.__name__
+    def __init__(self, func):
+        self.pfunc = partial(func)
+        self.__name__ = func.__name__
 
     def __call__(self, *args, **kwargs):
-        res = self.function(*args, **kwargs)
+        res = self.pfunc(*args, **kwargs)
         return res
 
     def __get__(self, obj, cls=None):
-        self.function = partial(self.__function, obj)
+        self.pfunc = partial(self.pfunc.func, obj)
         return self
 
 
 class Panel(Indicator):
     def plot(self, *args, **kwargs):
-
-        plt.plot(self(*args, **kwargs))
+        self(*args, **kwargs).plot(title=self.__name__, legend=True)
         plt.show()
 
-        print('I am plotting Indicator ' + self.__name__)
 
-        
 class Level(Indicator):
-    def plot(self):
-        print('I am plotting Level ' + self.__name__)
-
+    def plot(self, *args, **kwargs):
+        df = pd.DataFrame(self(*args, **kwargs), index = self.pfunc.args[0].df.index)
+        df.plot(title=self.__name__, legend=True)
+        plt.show()
+        
 
 class Asset:
     """
@@ -56,19 +55,27 @@ class Asset:
         self.name = name
 
     @Panel
+    def Close(self):
+        return self.df['Close'].copy()
+
+    @Panel
+    def Volume(self):
+        return self.df['Volume'].copy()
+
+    @Panel
     def SMA(self, windows=15):
         """
         :param windows: list of periods to compute averages for
         :returns: Series if windows is an int, DataFrame if windows is a list
         """
         if isinstance(windows, int):
-            SMA = self.df.Close.rolling(window=windows).mean()
+            SMA = self.df['Close'].rolling(window=windows).mean()
             return SMA.rename('SMA')
 
         else:
             windows.sort()
             input_dict = {f'SMA_{val}':
-                           self.df.Close.rolling(window=val).mean() for val in windows}
+                           self.df['Close'].rolling(window=val).mean() for val in windows}
 
             SMA = pd.DataFrame(input_dict, self.df.index)
             return SMA
@@ -79,7 +86,7 @@ class Asset:
         :param window: window to compute averages
         :returns: Series -- pandas Series of RSI values
         """
-        change = self.df.Close.diff().values
+        change = self.df['Close'].diff().values
 
         avg_gain = np.array([np.nan] * self.df.shape[0])
         avg_gain[window] = np.sum(np.maximum(change[1:window+1],0)) / window
@@ -102,14 +109,17 @@ class Asset:
         """
         :returns: Series -- pandas Series of OBV values
         """
-        sign = np.sign(self.df.Close.diff())
+        sign = np.sign(self.df['Close'].diff())
         sign[0] = 0
 
-        OBV = self.df.Volume * sign / 1e6
+        OBV = self.df['Volume'] * sign / 1e6
         OBV = np.cumsum(OBV)
 
         return OBV.rename('OBV')
         
+    @Level
+    def maxmin(self):
+        return {'min': min(self.df['Low']), 'max': max(self.df['High'])}
 
 class Stock(Asset):
     """

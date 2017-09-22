@@ -6,6 +6,8 @@ from pandas_datareader import data as pdr
 import requests
 from functools import partial
 
+plt.ion()
+
 class Indicator:
     def __init__(self, func):
         self.pfunc = partial(func)
@@ -22,7 +24,9 @@ class Indicator:
 
 class Panel(Indicator):
     def plot(self, *args, **kwargs):
-        self(*args, **kwargs).plot(title=self.__name__, legend=True)
+        fig, ax = plt.subplots()
+
+        self(*args, **kwargs).plot(ax=ax, title=self.__name__, legend=True)
         plt.show()
 
 

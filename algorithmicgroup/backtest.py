@@ -14,10 +14,10 @@ def backtest_strat(principal, strat, assets, *args, **kwargs):
     if df_signals.ndim == 1:
         df_signals = pd.DataFrame(df_signals)
 
-    # TO DO: Fix problem of numpy array operations returning nan    
     port_gains = np.zeros(df_close.shape)
     port_gains[0,:] = np.log(principal)
     port_gains[1:,:] = df_close.diff().values[1:,:] * df_signals.values[:-1,:]
+    port_gains[np.isnan(port_gains)] = 0
     port_gains = np.exp(port_gains.cumsum(axis=0))
 
     if port_gains.ndim == 1:

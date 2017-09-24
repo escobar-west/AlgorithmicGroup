@@ -10,15 +10,14 @@ plt.ion()
 
 class Indicator:
     def __init__(self, func):
-        self.pfunc = partial(func)
+        self.__pfunc = partial(func)
         self.__name__ = func.__name__
 
     def __call__(self, *args, **kwargs):
-        res = self.pfunc(*args, **kwargs)
-        return res
+        return self.__pfunc(*args, **kwargs)
 
     def __get__(self, obj, cls=None):
-        self.pfunc = partial(self.pfunc.func, obj)
+        self.__pfunc = partial(self.__pfunc.func, obj)
         return self
 
 
@@ -32,7 +31,7 @@ class Panel(Indicator):
 
 class Level(Indicator):
     def plot(self, *args, **kwargs):
-        df = pd.DataFrame(self(*args, **kwargs), index = self.pfunc.args[0].df.index)
+        df = pd.DataFrame(self(*args, **kwargs), index = self.__pfunc.args[0].df.index)
         df.plot(title=self.__name__, legend=True)
         plt.show()
         
@@ -104,7 +103,6 @@ class Asset:
         RS = -avg_gain/avg_loss
         RSI = 100 - 100 / (1+RS)
         RSI = pd.Series(data = RSI, index = self.df.index, name = 'RSI')
-
         return RSI
 
     @Panel 
@@ -123,6 +121,7 @@ class Asset:
     @Level
     def maxmin(self):
         return {'min': min(self.df['Low']), 'max': max(self.df['High'])}
+
 
 class Stock(Asset):
     """

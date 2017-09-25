@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from algorithmicgroup import Asset
 
 class Signal:
     def __init__(self, func):
@@ -11,7 +10,12 @@ class Signal:
         return self.__func(*args, **kwargs)
 
     def backtest(self, principal, assets, *args, **kwargs):
-        signals = self(assets, *args, **kwargs)
+        no_neutral = kwargs.pop('no_neutral', False)
+        signals = pd.DataFrame(self(assets, *args, **kwargs))
+
+        if no_neutral:
+            for col in signals.columns:
+                signals[col].replace(to_replace=0, method='ffill', inplace=True)
 
         if not isinstance(assets, list):
             assets = [assets]
@@ -52,6 +56,7 @@ def RSI_signal(asset, window=14, overbought=70.0, oversold=30.0):
     return signal
 
 
+@Signal
 def SMA_cross(asset, quick=30, slow=100):
     if quick > slow:
         (quick, slow) = (slow, quick)
@@ -79,19 +84,18 @@ def pairs(assets, tol=1):
     signal[np.isnan(signal)] = 0
 
     signal = pd.DataFrame(signal, price_diff.index,
-                          columns=[asset1.name + '_pair', asset2.name + '_pair'])
-
+                          columns=[asset1.name + '_pair', asset2.name + '_pair']
+                         )
     return signal
 
 
 @Signal
 def buy_hold(assets):
-    if ~isinstance(assets, list):
+    if not isinstance(assets, list):
         return pd.Series(1, assets.df.index, name='buy_hold')
 
     else:
         index = pd.concat([A.df.Close for A in assets], axis=1).index
         signal = np.ones([m.shape[0], len(assets)])
         signal = pd.DataFrame(signal, index, [A.name for A in assets])
-
         return signal

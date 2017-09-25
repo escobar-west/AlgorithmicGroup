@@ -166,19 +166,30 @@ class FX(Asset):
                  start=dt.date.today() - dt.timedelta(days=30),
                  end=dt.date.today()):
 
-        start = '{}/{}/{}'.format(start.year, start.month, start.day)
-        end = '{}/{}/{}'.format(end.year, end.month, end.day)
+        date_list = [start]
+        while start + dt.timedelta(days=200) < end:
+            start += dt.timedelta(days=200)
+            date_list.append(start)
+        date_list.append(end)
 
-        url = ('https://api.gdax.com/products/' + name
-               + '/candles?start=' + start + '&end=' + end
-               + '&granularity=86400')
+        df_list = []
+        for start_, end_ in zip(date_list[:-1], date_list[1:]):
 
-        r = requests.get(url)
+            start = '{}/{}/{}'.format(start_.year, start_.month, start_.day)
+            end = '{}/{}/{}'.format(end_.year, end_.month, end_.day)
 
-        data = np.array(r.json())
-        data = data[np.argsort(data[:,0]),:]
-        df = pd.DataFrame(data[:,1:], pd.to_datetime(data[:,0], unit='s'),
-                          ['Low','High','Open','Close','Volume'])
+            url = ('https://api.gdax.com/products/' + name
+                   + '/candles?start=' + start + '&end=' + end
+                   + '&granularity=86400')
+
+            r = requests.get(url)
+
+            data = np.array(r.json())
+            data = data[np.argsort(data[:,0]),:]
+            df_list.append(pd.DataFrame(data[:,1:], pd.to_datetime(data[:,0], unit='s'),
+                              ['Low','High','Open','Close','Volume'])
+                          )
+        df = pd.concat(df_list)
         df.index.name = 'Date'
 
         super().__init__(df, name)
